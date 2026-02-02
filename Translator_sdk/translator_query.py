@@ -258,7 +258,7 @@ def parallel_api_query(query_json:dict, selected_APIs:list[str],
                 data = future.result()
                 if 'knowledge_graph' in data:
                     result.append(data)
-            except Exception as exc:
+            except Exception:
                 no_results_returned.append(url)
                 #print('%r generated an exception: %s' % (url, exc))
     
