@@ -31,6 +31,12 @@ Type checking:
 uv run mypy Translator_sdk/
 ```
 
+## Project context
+
+This SDK was extracted from **[NCATSTranslator/Translator_component_toolkit](https://github.com/NCATSTranslator/Translator_component_toolkit)** (TCT). TCT is a broader Python library for exploring and using Translator Knowledge Graphs (KGs); all the modules in `Translator_sdk/` currently exist as duplicates inside `TCT/` in that repo.
+
+The long-term goal is to **remove the duplicated code from TCT** and have TCT (and any other Translator component) import these shared utilities from `Translator_sdk` instead. When making changes here, keep in mind that the same logic may still exist in TCT and may need to be updated in sync until the migration is complete.
+
 ## Architecture
 
 This is the **Translator SDK** — a Python library (`Translator_sdk` package) that wraps several NCATS Biomedical Data Translator REST APIs. The SDK provides typed Python interfaces to query knowledge provider (KP) APIs using TRAPI (Translator Reasoner API) format.
