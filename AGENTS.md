@@ -46,17 +46,26 @@ This is the **Translator SDK** — a Python library (`Translator_sdk` package) t
 - `TranslatorEdge`: represents a subject–predicate–object relationship.
 - `TranslatorAttribute`: key-value attribute attached to nodes or edges.
 
-### API wrappers
-Each module wraps one external Translator service:
+### Translator environments (`translator.py`)
+`TranslatorSystem` encapsulates a named Translator environment. Supported environments: `exp`, `dev`, `ci`, `test`, `prod`. The canonical source of environment URLs is [babel-validation/tests/targets.ini](https://github.com/TranslatorSRI/babel-validation/blob/main/tests/targets.ini) (covers NameRes and NodeNorm; NodeAnnotator has no per-environment URLs so prod is used for all).
 
-| Module | Service | Purpose |
-|--------|---------|---------|
-| `name_resolver.py` | NameRes (name-lookup.ci.transltr.io) | Convert human-readable names → CURIEs |
-| `node_normalizer.py` | NodeNorm (nodenorm.ci.transltr.io) | Normalize CURIEs to preferred identifiers |
-| `node_annotator.py` | Node Annotator (annotator.transltr.io) | Fetch annotations for CURIEs |
-| `translator_query.py` | KP APIs via TRAPI | Build and dispatch TRAPI queries |
-| `translator_metakg.py` | SmartAPI metaKG | Discover KP metadata and predicates |
-| `translator_kpinfo.py` | SmartAPI | List available KPs and their URLs |
+```python
+system = TranslatorSystem('ci')
+nr = system.name_resolver()   # NameResolver configured for CI
+nn = system.node_normalizer() # NodeNormalizer configured for CI
+```
+
+### API wrappers
+Each module wraps one external Translator service. The primary interface is **class-based** (`NameResolver`, `NodeNormalizer`, `NodeAnnotator`). Each class takes a `base_url` parameter (defaulting to `ClassName.DEFAULT_URL`, which points at the **CI** environment) and implements all real logic. Module-level functions still exist for backward compatibility but are **deprecated** and emit `DeprecationWarning` — they should be removed before v1.0.
+
+| Module | Class | Service | Purpose |
+|--------|-------|---------|---------|
+| `name_resolver.py` | `NameResolver` | NameRes | Convert human-readable names → CURIEs |
+| `node_normalizer.py` | `NodeNormalizer` | NodeNorm | Normalize CURIEs to preferred identifiers |
+| `node_annotator.py` | `NodeAnnotator` | Node Annotator | Fetch annotations for CURIEs |
+| `translator_query.py` | — | KP APIs via TRAPI | Build and dispatch TRAPI queries |
+| `translator_metakg.py` | — | SmartAPI metaKG | Discover KP metadata and predicates |
+| `translator_kpinfo.py` | — | SmartAPI | List available KPs and their URLs |
 
 ### Query flow (`translator_query.py`)
 1. `get_translator_API_predicates()` — discovers all KPs and their supported predicates via SmartAPI
