@@ -1,9 +1,9 @@
 import pytest
 
 from Translator_sdk.translator import TranslatorSystem
-from Translator_sdk.name_resolver import NameResolver, URL as NAMERES_DEFAULT_URL
-from Translator_sdk.node_normalizer import NodeNormalizer, URL as NODENORM_DEFAULT_URL
-from Translator_sdk.node_annotator import NodeAnnotator, URL as ANNOTATOR_DEFAULT_URL
+from Translator_sdk.name_resolver import NameResolver
+from Translator_sdk.node_normalizer import NodeNormalizer
+from Translator_sdk.node_annotator import NodeAnnotator
 
 
 # Test instances.
@@ -34,24 +34,24 @@ def test_translator_factory_methods():
 
     nr = ci.name_resolver()
     assert isinstance(nr, NameResolver)
-    assert nr.url == 'https://name-lookup.ci.transltr.io/'
+    assert nr.base_url == 'https://name-lookup.ci.transltr.io/'
 
     nn = ci.node_normalizer()
     assert isinstance(nn, NodeNormalizer)
-    assert nn.url == 'https://nodenorm.ci.transltr.io/'
+    assert nn.base_url == 'https://nodenorm.ci.transltr.io/'
 
     na = ci.node_annotator()
     assert isinstance(na, NodeAnnotator)
-    assert na.url == 'https://annotator.transltr.io/'
+    assert na.base_url == 'https://annotator.transltr.io/'
 
 
 def test_service_class_default_urls():
-    assert NameResolver().url == NAMERES_DEFAULT_URL
-    assert NodeNormalizer().url == NODENORM_DEFAULT_URL
-    assert NodeAnnotator().url == ANNOTATOR_DEFAULT_URL
+    assert NameResolver().base_url == NameResolver.DEFAULT_URL
+    assert NodeNormalizer().base_url == NodeNormalizer.DEFAULT_URL
+    assert NodeAnnotator().base_url == NodeAnnotator.DEFAULT_URL
 
 
 def test_service_class_custom_url():
     custom = 'https://name-lookup.test.transltr.io/'
-    nr = NameResolver(url=custom)
-    assert nr.url == custom
+    nr = NameResolver(base_url=custom)
+    assert nr.base_url == custom

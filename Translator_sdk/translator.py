@@ -74,12 +74,12 @@ class TranslatorSystem:
 
     def name_resolver(self) -> NameResolver:
         """Return a NameResolver configured for this Translator instance."""
-        return NameResolver(url=self.instance['nameres_url'])
+        return NameResolver(base_url=self.instance['nameres_url'])
 
     def node_normalizer(self) -> NodeNormalizer:
         """Return a NodeNormalizer configured for this Translator instance."""
-        return NodeNormalizer(url=self.instance['nodenorm_url'])
+        return NodeNormalizer(base_url=self.instance['nodenorm_url'])
 
     def node_annotator(self) -> NodeAnnotator:
         """Return a NodeAnnotator configured for this Translator instance."""
-        return NodeAnnotator(url=self.instance['annotator_url'])
+        return NodeAnnotator(base_url=self.instance['annotator_url'])
