@@ -12,16 +12,16 @@ from .translator_node import TranslatorNode
 URL = 'https://name-lookup.ci.transltr.io/'
 """This is the root URL for the API."""
 
-def status():
+def status(url: str = URL):
     """
     Returns the status of the Name Resolver API.
     """
-    response = requests.get(URL + 'status')
+    response = requests.get(url + 'status')
     response.raise_for_status()
     return response.json()
 
 
-def lookup(query: str, return_top_response:bool=True, return_synonyms:bool=False, limit:int=10, **kwargs):
+def lookup(query: str, return_top_response:bool=True, return_synonyms:bool=False, limit:int=10, url: str = URL, **kwargs):
     """
     A wrapper around the `lookup` api endpoint. Given a query string, this returns a TranslatorNode object or a list of TranslatorNode objects corresponding to the given name.
 
@@ -50,7 +50,7 @@ def lookup(query: str, return_top_response:bool=True, return_synonyms:bool=False
     TranslatorNode(curie='NCBIGene:3458', label='IFNG', types=['biolink:Gene', 'biolink:GeneOrGeneProduct', 'biolink:GenomicEntity', 'biolink:ChemicalEntityOrGeneOrGeneProduct', 'biolink:PhysicalEssence', 'biolink:OntologyClass', 'biolink:BiologicalEntity', 'biolink:ThingWithTaxon', 'biolink:NamedThing', 'biolink:Entity', 'biolink:PhysicalEssenceOrOccurrent', 'biolink:MacromolecularMachineMixin', 'biolink:Protein', 'biolink:GeneProductMixin', 'biolink:Polypeptide', 'biolink:ChemicalEntityOrProteinOrPolypeptide'], synonyms=None, curie_synonyms=None, attributes=None, taxa=['NCBITaxon:9606'])
     >>> lookup('AML', return_top_response=False, biolink_type="biolink:Disease")
     """
-    path = urllib.parse.urljoin(URL, 'lookup')
+    path = urllib.parse.urljoin(url, 'lookup')
     # set autocomplete to be false by default
     if 'autocomplete' not in kwargs:
         kwargs['autocomplete'] = False
@@ -72,7 +72,7 @@ def lookup(query: str, return_top_response:bool=True, return_synonyms:bool=False
         raise requests.RequestException('Response from server had error, code ' + str(response.status_code) + ' ' + str(response))
 
 
-def synonyms(query: str, **kwargs):
+def synonyms(query: str, url: str = URL, **kwargs):
     """
     A wrapper around the `synonyms` api endpoint. Given a list of CURIEs, this returns a dict of CURIE id : TranslatorNode for all synonyms for the given query.
 
@@ -87,7 +87,7 @@ def synonyms(query: str, **kwargs):
     -------
     Dict of CURIE id : TranslatorNode
     """
-    path = urllib.parse.urljoin(URL, 'synonyms')
+    path = urllib.parse.urljoin(url, 'synonyms')
     # set autocomplete to be false by default
     response = requests.get(path, params={'preferred_curies': query, **kwargs})
     if response.status_code == 200:
@@ -115,7 +115,7 @@ def chunk_list(data:list, size:int):
     return chunks
 
 
-def batch_lookup(strings:list[str], size: int=25, return_top_response:bool=True, return_synonyms:bool=False, **kwargs) -> dict:
+def batch_lookup(strings:list[str], size: int=25, return_top_response:bool=True, return_synonyms:bool=False, url: str = URL, **kwargs) -> dict:
     """
     A wrapper around the `bulk-lookup` api endpoint. Given a list of query strings, this returns a TranslatorNode object or a list of TranslatorNode objects corresponding to the given name.
 
@@ -142,7 +142,7 @@ def batch_lookup(strings:list[str], size: int=25, return_top_response:bool=True,
     {'AML': TranslatorNode(curie='MONDO:0018874', label='acute myeloid leukemia',...),
      'CML': TranslatorNode(curie='MONDO:0010809', label='familial chronic myelocytic leukemia-like syndrome',...)}
     """
-    path = urllib.parse.urljoin(URL, 'bulk-lookup')
+    path = urllib.parse.urljoin(url, 'bulk-lookup')
     curies = {}
     chunks = chunk_list(strings, size)
     for chunk in chunks:
@@ -172,3 +172,22 @@ def batch_lookup(strings:list[str], size: int=25, return_top_response:bool=True,
         else:
             raise requests.RequestException('Response from server had error, code ' + str(response.status_code) + ' ' + str(response))
     return curies
+
+
+class NameResolver:
+    """A configured client for the Name Resolver API."""
+
+    def __init__(self, url: str = URL):
+        self.url = url
+
+    def status(self):
+        return status(url=self.url)
+
+    def lookup(self, query: str, **kwargs):
+        return lookup(query, url=self.url, **kwargs)
+
+    def synonyms(self, query: str, **kwargs):
+        return synonyms(query, url=self.url, **kwargs)
+
+    def batch_lookup(self, strings: list[str], **kwargs) -> dict:
+        return batch_lookup(strings, url=self.url, **kwargs)

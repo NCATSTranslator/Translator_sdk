@@ -12,17 +12,18 @@ from .translator_node import TranslatorNode
 
 URL = 'https://nodenorm.ci.transltr.io/'
 
-def status():
+def status(url: str = URL):
     """
     Returns the status of the Node Normalizer API.
     """
-    response = requests.get(f'{URL}status')
+    response = requests.get(f'{url}status')
     response.raise_for_status()
     return response.json()
 
 def get_normalized_nodes(query: str | list[str],
         return_equivalent_identifiers:bool=False,
         mode:str='get',
+        url: str = URL,
         **kwargs):
     """
     A wrapper around the `get_normalized_nodes` api endpoint. Given a CURIE or a list of CURIEs, this returns either a single TranslatorNode or a dict of CURIE ids to TranslatorNodes.
@@ -49,7 +50,7 @@ def get_normalized_nodes(query: str | list[str],
     >>> get_normalized_nodes('MESH:D014867', return_equivalent_identifiers=False)
     TranslatorNode(curie='CHEBI:15377', label='Water', types=['biolink:SmallMolecule', 'biolink:MolecularEntity', 'biolink:ChemicalEntity', 'biolink:PhysicalEssence', 'biolink:ChemicalOrDrugOrTreatment', 'biolink:ChemicalEntityOrGeneOrGeneProduct', 'biolink:ChemicalEntityOrProteinOrPolypeptide', 'biolink:NamedThing', 'biolink:PhysicalEssenceOrOccurrent'], synonyms=None, curie_synonyms=None)
     """
-    path = urllib.parse.urljoin(URL, 'get_normalized_nodes')
+    path = urllib.parse.urljoin(url, 'get_normalized_nodes')
     # default parameters: true for gene-protein conflation, false for drug-chemical conflation
     if mode == 'post':
         if isinstance(query, str):
@@ -93,7 +94,7 @@ def get_normalized_nodes(query: str | list[str],
         raise requests.RequestException('Response from server had error, code ' + str(response.status_code))
 
 
-def get_preferred_names(id_list:list[str], batch_limit=500, **kwargs) -> dict[str, str]:
+def get_preferred_names(id_list:list[str], batch_limit=500, url: str = URL, **kwargs) -> dict[str, str]:
     """
     Converts a list of CURIEs to their preferred names using NodeNorm. This calls get_normalized_nodes.
 
@@ -114,7 +115,7 @@ def get_preferred_names(id_list:list[str], batch_limit=500, **kwargs) -> dict[st
     unmapped_ids = []
     for index in range(0, len(id_list), batch_limit):
         id_sublist = id_list[index:index + batch_limit]
-        normalized_nodes = get_normalized_nodes(id_sublist, mode='post', **kwargs)
+        normalized_nodes = get_normalized_nodes(id_sublist, mode='post', url=url, **kwargs)
         for curie in id_sublist:
             if curie not in normalized_nodes or normalized_nodes[curie] is None:
                 unmapped_ids.append(curie)
@@ -130,11 +131,12 @@ def get_preferred_names(id_list:list[str], batch_limit=500, **kwargs) -> dict[st
     return name_map
 
 
-def ID_convert_to_preferred_name_nodeNormalizer(id_list):
+def ID_convert_to_preferred_name_nodeNormalizer(id_list, url: str = URL):
     '''
     Convert a list of CURIEs to their preferred names using NodeNorm.
     Arg:
         id_list: list of CURIEs to be converted
+        url: NodeNorm base URL (default: module-level URL)
     Returns:
         dic_id_map: dictionary mapping CURIEs to their preferred names
     Example:
@@ -145,7 +147,6 @@ def ID_convert_to_preferred_name_nodeNormalizer(id_list):
     recoglized_ids = []
     # To convert a CURIE to a preferred name, you don't need NameLookup at all -- NodeNorm can
     # do this by itself!
-    NODENORM_BASE_URL = "https://nodenorm.transltr.io"  # Adjust this if you need NodeNorm TEST, CI or DEV.
     NODENORM_BATCH_LIMIT = 900                          # Adjust this if you start getting errors from NodeNorm.
     NODENORM_GENE_PROTEIN_CONFLATION = True             # Change to False if you don't want gene/protein conflation.
     NODENORM_DRUG_CHEMICAL_CONFLATION = False           # Change to True if you want drug/chemical conflation.
@@ -157,7 +158,7 @@ def ID_convert_to_preferred_name_nodeNormalizer(id_list):
         # print(f"id_sublist: {id_sublist}")
 
         # Query NodeNorm with https://nodenorm.transltr.io/docs#/default/get_normalized_node_handler_get_normalized_nodes_get
-        response = requests.post(NODENORM_BASE_URL + '/get_normalized_nodes', json={
+        response = requests.post(url.rstrip('/') + '/get_normalized_nodes', json={
             "curies": id_sublist,
             "description": False,   # Change to True if you want descriptions from any identifiers we know about.
             "conflate": NODENORM_GENE_PROTEIN_CONFLATION,
@@ -188,3 +189,22 @@ def ID_convert_to_preferred_name_nodeNormalizer(id_list):
         print("NodeNorm does not know about these identifiers: " + ",".join(unrecoglized_ids))
 
     return dic_id_map
+
+
+class NodeNormalizer:
+    """A configured client for the Node Normalizer API."""
+
+    def __init__(self, url: str = URL):
+        self.url = url
+
+    def status(self):
+        return status(url=self.url)
+
+    def get_normalized_nodes(self, query: str | list[str], **kwargs):
+        return get_normalized_nodes(query, url=self.url, **kwargs)
+
+    def get_preferred_names(self, id_list: list[str], **kwargs) -> dict[str, str]:
+        return get_preferred_names(id_list, url=self.url, **kwargs)
+
+    def ID_convert_to_preferred_name_nodeNormalizer(self, id_list):
+        return ID_convert_to_preferred_name_nodeNormalizer(id_list, url=self.url)
