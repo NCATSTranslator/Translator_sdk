@@ -4,6 +4,7 @@ This is a wrapper around the Name Resolver API.
 API docs: https://name-lookup.ci.transltr.io/docs
 """
 import urllib.parse
+import warnings
 
 import requests
 
@@ -183,20 +184,25 @@ class NameResolver:
 # ---------------------------------------------------------------------------
 
 def status(base_url: str = NameResolver.DEFAULT_URL):
+    warnings.warn("name_resolver.status() is deprecated; use NameResolver(base_url).status() instead.", DeprecationWarning, stacklevel=2)
     return NameResolver(base_url).status()
 
 
 def lookup(query: str, return_top_response: bool = True, return_synonyms: bool = False, limit: int = 10, base_url: str = NameResolver.DEFAULT_URL, **kwargs):
+    warnings.warn("name_resolver.lookup() is deprecated; use NameResolver(base_url).lookup() instead.", DeprecationWarning, stacklevel=2)
     return NameResolver(base_url).lookup(query, return_top_response=return_top_response, return_synonyms=return_synonyms, limit=limit, **kwargs)
 
 
 def synonyms(query: str, base_url: str = NameResolver.DEFAULT_URL, **kwargs):
+    warnings.warn("name_resolver.synonyms() is deprecated; use NameResolver(base_url).synonyms() instead.", DeprecationWarning, stacklevel=2)
     return NameResolver(base_url).synonyms(query, **kwargs)
 
 
 def chunk_list(data: list, size: int):
+    warnings.warn("name_resolver.chunk_list() is deprecated; use NameResolver.chunk_list() instead.", DeprecationWarning, stacklevel=2)
     return NameResolver.chunk_list(data, size)
 
 
 def batch_lookup(strings: list[str], size: int = 25, return_top_response: bool = True, return_synonyms: bool = False, base_url: str = NameResolver.DEFAULT_URL, **kwargs) -> dict:
+    warnings.warn("name_resolver.batch_lookup() is deprecated; use NameResolver(base_url).batch_lookup() instead.", DeprecationWarning, stacklevel=2)
     return NameResolver(base_url).batch_lookup(strings, size=size, return_top_response=return_top_response, return_synonyms=return_synonyms, **kwargs)

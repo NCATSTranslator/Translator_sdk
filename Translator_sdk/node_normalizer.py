@@ -4,6 +4,7 @@ This is a wrapper around the Node Normalizer API.
 API docs: https://nodenorm.transltr.io/docs
 """
 import urllib.parse
+import warnings
 
 import requests
 
@@ -136,6 +137,9 @@ class NodeNormalizer:
 
     def ID_convert_to_preferred_name_nodeNormalizer(self, id_list):
         '''
+        .. deprecated::
+            Use :meth:`get_preferred_names` instead.
+
         Convert a list of CURIEs to their preferred names using NodeNorm.
         Arg:
             id_list: list of CURIEs to be converted
@@ -144,9 +148,13 @@ class NodeNormalizer:
         Example:
             dic_id_map = NodeNormalizer().ID_convert_to_preferred_name_nodeNormalizer(["NCBIGene:1234", "NCBIGene:5678"])
         '''
+        warnings.warn(
+            "ID_convert_to_preferred_name_nodeNormalizer() is deprecated; use get_preferred_names() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         dic_id_map = {}
         unrecoglized_ids = []
-        recoglized_ids = []
         # To convert a CURIE to a preferred name, you don't need NameLookup at all -- NodeNorm can
         # do this by itself!
         NODENORM_BATCH_LIMIT = 900                          # Adjust this if you start getting errors from NodeNorm.
@@ -193,6 +201,7 @@ class NodeNormalizer:
 # ---------------------------------------------------------------------------
 
 def status(base_url: str = NodeNormalizer.DEFAULT_URL):
+    warnings.warn("node_normalizer.status() is deprecated; use NodeNormalizer(base_url).status() instead.", DeprecationWarning, stacklevel=2)
     return NodeNormalizer(base_url).status()
 
 
@@ -201,12 +210,15 @@ def get_normalized_nodes(query: str | list[str],
         mode: str = 'get',
         base_url: str = NodeNormalizer.DEFAULT_URL,
         **kwargs):
+    warnings.warn("node_normalizer.get_normalized_nodes() is deprecated; use NodeNormalizer(base_url).get_normalized_nodes() instead.", DeprecationWarning, stacklevel=2)
     return NodeNormalizer(base_url).get_normalized_nodes(query, return_equivalent_identifiers=return_equivalent_identifiers, mode=mode, **kwargs)
 
 
 def get_preferred_names(id_list: list[str], batch_limit: int = 500, base_url: str = NodeNormalizer.DEFAULT_URL, **kwargs) -> dict[str, str]:
+    warnings.warn("node_normalizer.get_preferred_names() is deprecated; use NodeNormalizer(base_url).get_preferred_names() instead.", DeprecationWarning, stacklevel=2)
     return NodeNormalizer(base_url).get_preferred_names(id_list, batch_limit=batch_limit, **kwargs)
 
 
 def ID_convert_to_preferred_name_nodeNormalizer(id_list, base_url: str = NodeNormalizer.DEFAULT_URL):
+    warnings.warn("node_normalizer.ID_convert_to_preferred_name_nodeNormalizer() is deprecated; use NodeNormalizer(base_url).get_preferred_names() instead.", DeprecationWarning, stacklevel=2)
     return NodeNormalizer(base_url).ID_convert_to_preferred_name_nodeNormalizer(id_list)

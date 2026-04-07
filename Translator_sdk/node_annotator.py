@@ -4,6 +4,7 @@ This is a wrapper around the Node Annotator API.
 API docs: https://annotator.transltr.io/
 """
 import urllib.parse
+import warnings
 
 import requests
 
@@ -56,9 +57,9 @@ class NodeAnnotator:
 
         result = response.json()
         if len(result) == 0:
-            raise LookupError('No matching CURIE found for the given string ' + curies)
+            raise LookupError('No matching CURIE found for the given string ' + str(curies))
 
-        results = response.json()
+        results = result
 
         for curie in results:
             # NodeAnnotator sometimes return a list of a single item. If so, we can unwrap it here.
@@ -74,12 +75,15 @@ class NodeAnnotator:
 # ---------------------------------------------------------------------------
 
 def status(base_url: str = NodeAnnotator.DEFAULT_URL):
+    warnings.warn("node_annotator.status() is deprecated; use NodeAnnotator(base_url).status() instead.", DeprecationWarning, stacklevel=2)
     return NodeAnnotator(base_url).status()
 
 
 def lookup_curie(curie: str, base_url: str = NodeAnnotator.DEFAULT_URL, **kwargs):
+    warnings.warn("node_annotator.lookup_curie() is deprecated; use NodeAnnotator(base_url).lookup_curie() instead.", DeprecationWarning, stacklevel=2)
     return NodeAnnotator(base_url).lookup_curie(curie, **kwargs)
 
 
 def lookup_curies(curies: list[str], base_url: str = NodeAnnotator.DEFAULT_URL, **kwargs):
+    warnings.warn("node_annotator.lookup_curies() is deprecated; use NodeAnnotator(base_url).lookup_curies() instead.", DeprecationWarning, stacklevel=2)
     return NodeAnnotator(base_url).lookup_curies(curies, **kwargs)
