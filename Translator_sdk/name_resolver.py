@@ -139,7 +139,7 @@ class NameResolver:
         """
         path = urllib.parse.urljoin(self.base_url, 'bulk-lookup')
         curies = {}
-        chunks = self._chunk_list(strings, size)
+        chunks = self.chunk_list(strings, size)
         for chunk in chunks:
             payload = {
                 "strings": chunk,
@@ -169,7 +169,7 @@ class NameResolver:
         return curies
 
     @staticmethod
-    def _chunk_list(data: list, size: int):
+    def chunk_list(data: list, size: int):
         # Extra method to help chunk large files and avoid 504 error.
         chunks = []
         for i in range(0, len(data), size):
@@ -195,7 +195,7 @@ def synonyms(query: str, base_url: str = NameResolver.DEFAULT_URL, **kwargs):
 
 
 def chunk_list(data: list, size: int):
-    return NameResolver._chunk_list(data, size)
+    return NameResolver.chunk_list(data, size)
 
 
 def batch_lookup(strings: list[str], size: int = 25, return_top_response: bool = True, return_synonyms: bool = False, base_url: str = NameResolver.DEFAULT_URL, **kwargs) -> dict:
