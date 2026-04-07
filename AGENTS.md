@@ -66,7 +66,7 @@ Each module wraps one external Translator service:
 5. `parallel_api_query()` — queries multiple KPs concurrently and merges their edge results
 
 ### Tests
-Tests make live network calls to the Translator CI environment. There are no mocks. Tests are in `tests/` and cover NameRes, NodeNorm, and NodeAnnotator wrappers.
+Tests make live network calls to external Translator endpoints. There are no mocks. Depending on wrapper defaults, those calls may go to CI-hosted services and/or non-CI/production Translator services (for example, NameRes and NodeNorm default to `*.ci.transltr.io`, while NodeAnnotator defaults to `https://annotator.transltr.io/`). Tests are in `tests/` and cover NameRes, NodeNorm, and NodeAnnotator wrappers, so expect external-service dependency and potential flakiness.
 
 ## Agent notes
 
