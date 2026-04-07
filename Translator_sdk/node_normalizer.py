@@ -4,7 +4,6 @@ This is a wrapper around the Node Normalizer API.
 API docs: https://nodenorm.transltr.io/docs
 """
 import urllib.parse
-import warnings
 
 import requests
 
@@ -194,11 +193,6 @@ class NodeNormalizer:
 # ---------------------------------------------------------------------------
 
 def status(base_url: str = NodeNormalizer.DEFAULT_URL):
-    warnings.warn(
-        "status() is deprecated; use NodeNormalizer(base_url).status() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeNormalizer(base_url).status()
 
 
@@ -207,27 +201,12 @@ def get_normalized_nodes(query: str | list[str],
         mode: str = 'get',
         base_url: str = NodeNormalizer.DEFAULT_URL,
         **kwargs):
-    warnings.warn(
-        "get_normalized_nodes() is deprecated; use NodeNormalizer(base_url).get_normalized_nodes() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeNormalizer(base_url).get_normalized_nodes(query, return_equivalent_identifiers=return_equivalent_identifiers, mode=mode, **kwargs)
 
 
 def get_preferred_names(id_list: list[str], batch_limit: int = 500, base_url: str = NodeNormalizer.DEFAULT_URL, **kwargs) -> dict[str, str]:
-    warnings.warn(
-        "get_preferred_names() is deprecated; use NodeNormalizer(base_url).get_preferred_names() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeNormalizer(base_url).get_preferred_names(id_list, batch_limit=batch_limit, **kwargs)
 
 
 def ID_convert_to_preferred_name_nodeNormalizer(id_list, base_url: str = NodeNormalizer.DEFAULT_URL):
-    warnings.warn(
-        "ID_convert_to_preferred_name_nodeNormalizer() is deprecated; use NodeNormalizer(base_url).ID_convert_to_preferred_name_nodeNormalizer() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeNormalizer(base_url).ID_convert_to_preferred_name_nodeNormalizer(id_list)

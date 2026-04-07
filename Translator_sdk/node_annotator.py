@@ -4,7 +4,6 @@ This is a wrapper around the Node Annotator API.
 API docs: https://annotator.transltr.io/
 """
 import urllib.parse
-import warnings
 
 import requests
 
@@ -75,27 +74,12 @@ class NodeAnnotator:
 # ---------------------------------------------------------------------------
 
 def status(base_url: str = NodeAnnotator.DEFAULT_URL):
-    warnings.warn(
-        "status() is deprecated; use NodeAnnotator(base_url).status() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeAnnotator(base_url).status()
 
 
 def lookup_curie(curie: str, base_url: str = NodeAnnotator.DEFAULT_URL, **kwargs):
-    warnings.warn(
-        "lookup_curie() is deprecated; use NodeAnnotator(base_url).lookup_curie() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeAnnotator(base_url).lookup_curie(curie, **kwargs)
 
 
 def lookup_curies(curies: list[str], base_url: str = NodeAnnotator.DEFAULT_URL, **kwargs):
-    warnings.warn(
-        "lookup_curies() is deprecated; use NodeAnnotator(base_url).lookup_curies() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return NodeAnnotator(base_url).lookup_curies(curies, **kwargs)
