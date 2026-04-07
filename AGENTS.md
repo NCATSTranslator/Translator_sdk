@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents (Claude Code, Codex, etc.) when working with code in this repository.
 
 ## Commands
 
@@ -76,3 +76,9 @@ Each module wraps one external Translator service. The primary interface is **cl
 
 ### Tests
 Tests make live network calls to the Translator CI environment. There are no mocks. Tests are in `tests/` and cover NameRes, NodeNorm, and NodeAnnotator wrappers.
+
+## Agent notes
+
+- Always run `make check` before committing (runs lint, spell check, and tests).
+- Do not break TCT compatibility without a migration plan — the same logic lives in `TCT/` until the migration is complete.
+- `CLAUDE.md` is a symlink to this file; edit `AGENTS.md` directly.
