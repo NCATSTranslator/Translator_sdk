@@ -51,12 +51,12 @@ Each module wraps one external Translator service:
 
 | Module | Service | Purpose |
 |--------|---------|---------|
-| `name_resolver.py` | NameRes (name-lookup.ci.transltr.io) | Convert human-readable names → CURIEs |
-| `node_normalizer.py` | NodeNorm (nodenorm.ci.transltr.io) | Normalize CURIEs to preferred identifiers |
-| `node_annotator.py` | Node Annotator (annotator.transltr.io) | Fetch annotations for CURIEs |
+| `name_resolver.py` | NameRes (https://name-lookup.ci.transltr.io) | Convert human-readable names → CURIEs |
+| `node_normalizer.py` | NodeNorm (https://nodenorm.ci.transltr.io) | Normalize CURIEs to preferred identifiers |
+| `node_annotator.py` | Node Annotator (https://annotator.transltr.io) | Fetch annotations for CURIEs |
 | `translator_query.py` | KP APIs via TRAPI | Build and dispatch TRAPI queries |
-| `translator_metakg.py` | SmartAPI metaKG | Discover KP metadata and predicates |
-| `translator_kpinfo.py` | SmartAPI | List available KPs and their URLs |
+| `translator_metakg.py` | SmartAPI metaKG (https://smart-api.info) | Discover KP metadata and predicates |
+| `translator_kpinfo.py` | SmartAPI (https://smart-api.info) | List available KPs and their URLs |
 
 ### Query flow (`translator_query.py`)
 1. `get_translator_API_predicates()` — discovers all KPs and their supported predicates via SmartAPI
