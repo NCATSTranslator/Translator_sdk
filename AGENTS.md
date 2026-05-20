@@ -14,6 +14,7 @@ make lint-fix     # Run ruff with automatic fixes
 make format       # Format code with ruff
 make spell        # Run codespell
 make check        # Run all checks (lint, spell, test)
+make docs         # Regenerate docs/cli-reference.md from the CLI
 ```
 
 Run a single test file:
@@ -75,6 +76,7 @@ one `cli.add_command(...)` line in `cli/main.py`:
 - `cli/tables.py` — tool-agnostic CSV/TSV/JSON record file I/O (stdlib `csv`/`json`, not pandas, so input is echoed back unchanged except for added columns).
 - `cli/fields.py` — tool-agnostic `--include` handling: an `IncludeField`/`FieldRegistry` pair that resolves user-typed field names/aliases and renders values.
 - `cli/normalize.py` — the NodeNorm-specific subcommand: its options, its `FIELDS` registry, and the per-CURIE result type.
+- `cli/reference.py` — renders the CLI's help into `docs/cli-reference.md` (via `make docs`); `tests/test_cli_docs.py` keeps that file in sync.
 
 `translator normalize` reads a CSV/TSV/JSON file, normalizes the CURIEs in the
 `--column`(s) chosen by the user, and writes the same table back with
@@ -88,5 +90,6 @@ Tests make live network calls to external Translator endpoints. There are no moc
 ## Agent notes
 
 - Always run `make check` before committing (runs lint, spell check, and tests).
+- After changing the CLI, run `make docs` to regenerate `docs/cli-reference.md` — `tests/test_cli_docs.py` fails if it is stale. `docs/cli-reference.md` is generated; edit the CLI (or `docs/command-line-tools.md`) instead.
 - Do not break TCT compatibility without a migration plan — the same logic lives in `TCT/` until the migration is complete.
 - `CLAUDE.md` is a symlink to this file; edit `AGENTS.md` directly.

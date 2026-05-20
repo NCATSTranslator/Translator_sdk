@@ -210,8 +210,8 @@ A blank cell in your input column is left blank in the output, with no error.
 
 ## Seeing every option
 
-This guide covers the common cases. For the complete, always-up-to-date list of
-every command and option, run:
+This guide covers the common cases. For the complete list of every command and
+option, see the **[command reference](cli-reference.md)**, or run:
 
 ```
 translator --help
