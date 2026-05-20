@@ -27,10 +27,11 @@ dependencies = [
     "networkx",
     "numpy",
     'networkx',
+    "click",
 ]
 
 [project.scripts]
-tct-server = "main:main"
+translator = "Translator_sdk.cli.main:cli"
 
 [project.urls]
 Homepage = "https://github.com/NCATSTranslator/Translator_sdk"

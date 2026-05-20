@@ -1,0 +1,5 @@
+[
+  {"gene_symbol": "water", "curie": "MESH:D014867", "source": "MESH"},
+  {"gene_symbol": "DMD", "curie": "NCBIGene:1756", "source": "NCBI"},
+  {"gene_symbol": "unknown", "curie": "MONDO:0000000", "source": "test"}
+]

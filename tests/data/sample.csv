@@ -1,0 +1,4 @@
+gene_symbol,curie,source
+water,MESH:D014867,MESH
+DMD,NCBIGene:1756,NCBI
+unknown,MONDO:0000000,test

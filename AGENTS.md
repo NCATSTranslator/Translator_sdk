@@ -65,6 +65,23 @@ Each module wraps one external Translator service:
 4. `query_KP()` — sends a TRAPI query to one KP and returns the knowledge graph result
 5. `parallel_api_query()` — queries multiple KPs concurrently and merges their edge results
 
+### Command-line interface (`Translator_sdk/cli/`)
+The SDK ships a `translator` command (the `[project.scripts]` entry point; also
+runnable as `python -m Translator_sdk.cli`). It is an umbrella `click` group
+with one subcommand per tool — currently `translator normalize` (NodeNorm).
+
+The package is split so that adding a CLI for another tool is a new module plus
+one `cli.add_command(...)` line in `cli/main.py`:
+- `cli/tables.py` — tool-agnostic CSV/TSV/JSON record file I/O (stdlib `csv`/`json`, not pandas, so input is echoed back unchanged except for added columns).
+- `cli/fields.py` — tool-agnostic `--include` handling: an `IncludeField`/`FieldRegistry` pair that resolves user-typed field names/aliases and renders values.
+- `cli/normalize.py` — the NodeNorm-specific subcommand: its options, its `FIELDS` registry, and the per-CURIE result type.
+
+`translator normalize` reads a CSV/TSV/JSON file, normalizes the CURIEs in the
+`--column`(s) chosen by the user, and writes the same table back with
+`<column>_<field>` columns appended for each `--include` field. Knowledge of the
+NodeNorm request/response shape stays in `node_normalizer.py` — the CLI calls
+`get_normalized_nodes_raw()` + `_node_from_response()` there.
+
 ### Tests
 Tests make live network calls to external Translator endpoints. There are no mocks. Depending on wrapper defaults, those calls may go to CI-hosted services and/or non-CI/production Translator services (for example, NameRes and NodeNorm default to `*.ci.transltr.io`, while NodeAnnotator defaults to `https://annotator.transltr.io/`). Tests are in `tests/` and cover NameRes, NodeNorm, and NodeAnnotator wrappers, so expect external-service dependency and potential flakiness.
 
