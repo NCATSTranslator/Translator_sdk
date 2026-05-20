@@ -134,3 +134,31 @@ def test_nodenorm_to_preferred_names():
     for filtered_expected_result in filtered_expected_results:
         query = filtered_expected_result['query']
         assert result[query] == filtered_expected_result['label']
+
+
+def test_nodenorm_extra_fields():
+    """
+    Test that get_normalized_nodes populates description and information_content.
+    """
+    node = Translator_sdk.node_normalizer.get_normalized_nodes(
+        'MESH:D014867', mode='post', description=True)
+
+    assert node.curie == 'CHEBI:15377'
+    assert node.label == 'Water'
+    # NodeNorm returns a description when asked, and an information content score.
+    assert node.description
+    assert node.information_content is not None
+    assert node.taxa is None
+
+
+def test_nodenorm_raw():
+    """
+    Test that get_normalized_nodes_raw returns the unparsed NodeNorm response.
+    """
+    raw = Translator_sdk.node_normalizer.get_normalized_nodes_raw(
+        ['MESH:D014867', 'MONDO:0000000'])
+
+    assert raw['MESH:D014867']['id']['identifier'] == 'CHEBI:15377'
+    assert 'type' in raw['MESH:D014867']
+    # NodeNorm has no record of MONDO:0000000.
+    assert raw['MONDO:0000000'] is None

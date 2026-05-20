@@ -2,6 +2,15 @@
 This is a wrapper around the Node Normalizer API.
 
 API docs: https://nodenorm.transltr.io/docs
+OpenAPI spec: https://nodenormalization-sri.renci.org/openapi.json
+
+The functions here form three layers:
+
+- :func:`get_normalized_nodes_raw` is a thin layer over the HTTP endpoint. It is
+  the only place that knows the endpoint URL and the names of its parameters.
+- :func:`_node_from_response` is the only place that knows the shape of a
+  NodeNorm response, turning one result object into a :class:`TranslatorNode`.
+- :func:`get_normalized_nodes` is the ergonomic entry point most callers want.
 """
 import urllib.parse
 
@@ -12,6 +21,7 @@ from .translator_node import TranslatorNode
 
 URL = 'https://nodenorm.ci.transltr.io/'
 
+
 def status():
     """
     Returns the status of the Node Normalizer API.
@@ -20,77 +30,153 @@ def status():
     response.raise_for_status()
     return response.json()
 
-def get_normalized_nodes(query: str | list[str],
-        return_equivalent_identifiers:bool=False,
-        mode:str='get',
-        **kwargs):
+
+def get_normalized_nodes_raw(query: str | list[str],
+        mode: str = 'post',
+        *,
+        conflate: bool = True,
+        drug_chemical_conflate: bool = False,
+        description: bool = False,
+        individual_types: bool = False,
+        include_taxa: bool = True) -> dict:
     """
-    A wrapper around the `get_normalized_nodes` api endpoint. Given a CURIE or a list of CURIEs, this returns either a single TranslatorNode or a dict of CURIE ids to TranslatorNodes.
+    Calls the NodeNorm ``get_normalized_nodes`` endpoint and returns its raw JSON.
+
+    This is a thin layer over the HTTP endpoint: it is the single place in the SDK
+    that knows the endpoint URL and the names of its parameters. Most callers
+    should use :func:`get_normalized_nodes` instead, which parses the response
+    into :class:`TranslatorNode` objects.
 
     Parameters
     ----------
-    query : str
-        Query CURIE
-    return_equivalent_identifiers : bool
-        Whether or not to return a list of equivalent identifiers along with the TranslatorNode. Default: False
-    mode: str
-        'get' or 'post'. Default: 'get'
-    **kwargs
-        Other arguments to `get_normalized_nodes` (e.g. `conflate` for gene-protein conflation, `drug_chemical_conflate` for drug-chemical conflation - see https://nodenorm.transltr.io/docs#/default/get_normalized_node_handler_get_normalized_nodes_get)
+    query : str or list[str]
+        A CURIE, or a list of CURIEs, to normalize.
+    mode : str
+        'post' to send a POST request (recommended for more than a few CURIEs);
+        anything else sends a GET request. Default: 'post'.
+    conflate : bool
+        Apply gene/protein conflation. Default: True.
+    drug_chemical_conflate : bool
+        Apply drug/chemical conflation. Default: False.
+    description : bool
+        Ask NodeNorm to include descriptions for the identifiers it knows about.
+        Default: False.
+    individual_types : bool
+        Ask NodeNorm to include the biolink type of each equivalent identifier.
+        Default: False.
+    include_taxa : bool
+        Ask NodeNorm to include taxa for the normalized nodes. Default: True.
 
     Returns
     -------
-    If query is a single CURIE, returns a single TranslatorNode.
+    A dict mapping each queried CURIE to its raw NodeNorm result object, or to
+    ``None`` when NodeNorm has no record of that CURIE.
+    """
+    path = urllib.parse.urljoin(URL, 'get_normalized_nodes')
+    options = {
+        'conflate': conflate,
+        'drug_chemical_conflate': drug_chemical_conflate,
+        'description': description,
+        'individual_types': individual_types,
+        'include_taxa': include_taxa,
+    }
+    if mode == 'post':
+        # CURIEs sent to POST must be a list. If a single CURIE is given, we wrap it.
+        curies = [query] if isinstance(query, str) else list(query)
+        response = requests.post(path, json={'curies': curies, **options})
+    else:
+        response = requests.get(path, params={'curie': query, **options})
+    response.raise_for_status()
+    return response.json()
 
-    If query is a list of CURIEs, a dict of CURIE id to TranslatorNode for every node in the query.
+
+def _node_from_response(raw_node: dict, return_equivalent_identifiers: bool = True) -> TranslatorNode:
+    """
+    Builds a :class:`TranslatorNode` from a single NodeNorm result object.
+
+    This is the single place in the SDK that knows the shape of a NodeNorm
+    ``get_normalized_nodes`` response. ``raw_node`` is the (non-``None``) value
+    that NodeNorm returns for one queried CURIE.
+    """
+    node = TranslatorNode(raw_node['id']['identifier'])
+    node.label = raw_node['id'].get('label')
+    node.description = raw_node['id'].get('description')
+    if 'type' in raw_node:
+        node.types = raw_node['type']
+    if 'taxa' in raw_node:
+        node.taxa = raw_node['taxa']
+    if 'information_content' in raw_node:
+        node.information_content = raw_node['information_content']
+    if return_equivalent_identifiers and 'equivalent_identifiers' in raw_node:
+        node.synonyms = [eq.get('label') for eq in raw_node['equivalent_identifiers']]
+        node.curie_synonyms = [eq['identifier'] for eq in raw_node['equivalent_identifiers']]
+    return node
+
+
+def get_normalized_nodes(query: str | list[str],
+        return_equivalent_identifiers: bool = False,
+        mode: str = 'get',
+        *,
+        conflate: bool = True,
+        drug_chemical_conflate: bool = False,
+        description: bool = False,
+        individual_types: bool = False,
+        include_taxa: bool = True):
+    """
+    Normalizes a CURIE (or a list of CURIEs) using NodeNorm.
+
+    Given a CURIE or a list of CURIEs, this returns either a single
+    :class:`TranslatorNode` or a dict mapping each queried CURIE to a
+    :class:`TranslatorNode` (or ``None`` when NodeNorm has no record of it).
+
+    Parameters
+    ----------
+    query : str or list[str]
+        A CURIE, or a list of CURIEs, to normalize.
+    return_equivalent_identifiers : bool
+        Whether to populate the returned node(s) with their equivalent
+        identifiers (as ``synonyms`` and ``curie_synonyms``). Default: False.
+    mode : str
+        'post' to send a POST request (recommended for more than a few CURIEs);
+        anything else sends a GET request. Default: 'get'.
+    conflate : bool
+        Apply gene/protein conflation. Default: True.
+    drug_chemical_conflate : bool
+        Apply drug/chemical conflation. Default: False.
+    description : bool
+        Ask NodeNorm to include a description for each normalized node.
+        Default: False.
+    individual_types : bool
+        Ask NodeNorm to include the biolink type of each equivalent identifier.
+        Default: False.
+    include_taxa : bool
+        Ask NodeNorm to include taxa for the normalized nodes. Default: True.
+
+    Returns
+    -------
+    If query is a single CURIE, returns a single TranslatorNode (or None).
+
+    If query is a list of CURIEs, returns a dict mapping each queried CURIE to a
+    TranslatorNode (or None) for every CURIE in the query.
 
     Examples
     --------
-    >>> get_normalized_nodes('MESH:D014867', return_equivalent_identifiers=False)
-    TranslatorNode(curie='CHEBI:15377', label='Water', types=['biolink:SmallMolecule', 'biolink:MolecularEntity', 'biolink:ChemicalEntity', 'biolink:PhysicalEssence', 'biolink:ChemicalOrDrugOrTreatment', 'biolink:ChemicalEntityOrGeneOrGeneProduct', 'biolink:ChemicalEntityOrProteinOrPolypeptide', 'biolink:NamedThing', 'biolink:PhysicalEssenceOrOccurrent'], synonyms=None, curie_synonyms=None)
+    >>> get_normalized_nodes('MESH:D014867')
+    TranslatorNode(curie='CHEBI:15377', label='Water', types=['biolink:SmallMolecule', ...], ...)
     """
-    path = urllib.parse.urljoin(URL, 'get_normalized_nodes')
-    # default parameters: true for gene-protein conflation, false for drug-chemical conflation
-    if mode == 'post':
-        if isinstance(query, str):
-            # CURIEs sent to POST must be a list. If a single CURIE is given, we wrap it.
-            json_query = [query]
-        else:
-            json_query = query
-        response = requests.post(path, json={'curies': json_query, **kwargs})
-    else:
-        response = requests.get(path, params={'curie': query, **kwargs})
-    if response.status_code == 200:
-        result = response.json()
-        normalized_dict = {}
-        for k, node in result.items():
-            if node is None:
-                # No match found for CURIE `k`.
-                normalized_dict[k] = None
-                continue
-
-            n = TranslatorNode(node['id']['identifier'])
-            if 'label' in node['id']:
-                n.label = node['id']['label']
-            if 'type' in node:
-                n.types = node['type']
-            if return_equivalent_identifiers and 'equivalent_identifiers' in node:
-                synonyms = []
-                curie_synonyms = []
-                for eq in node['equivalent_identifiers']:
-                    if 'label' in eq:
-                        synonyms.append(eq['label'])
-                    else:
-                        synonyms.append(None)
-                    curie_synonyms.append(eq['identifier'])
-                n.synonyms = synonyms
-                n.curie_synonyms = curie_synonyms
-            normalized_dict[k] = n
-        if isinstance(query, str):
-            return normalized_dict[query]
-        return normalized_dict
-    else:
-        raise requests.RequestException('Response from server had error, code ' + str(response.status_code))
+    raw_nodes = get_normalized_nodes_raw(query, mode=mode,
+        conflate=conflate,
+        drug_chemical_conflate=drug_chemical_conflate,
+        description=description,
+        individual_types=individual_types,
+        include_taxa=include_taxa)
+    normalized = {
+        curie: None if raw_node is None else _node_from_response(raw_node, return_equivalent_identifiers)
+        for curie, raw_node in raw_nodes.items()
+    }
+    if isinstance(query, str):
+        return normalized[query]
+    return normalized
 
 
 def get_preferred_names(id_list:list[str], batch_limit=500, **kwargs) -> dict[str, str]:

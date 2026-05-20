@@ -56,6 +56,12 @@ class TranslatorNode:
     taxa: list[str] | None = None
     "List of taxa for the given node (i.e. 'NCBITaxon:9606')"
 
+    description: str | None = None
+    "A human-readable description of the node, if one is available."
+
+    information_content: float | None = None
+    "NodeNorm information content score (higher means more specific), if available."
+
     # identifier is just another way to access/set the CURIE.
     @property
     def identifier(self):
@@ -84,6 +90,10 @@ class TranslatorNode:
             n.types = list(map(lambda ty: f"biolink:{ty}" if not ty.startswith('biolink:') else ty, data_dict['types']))
         if 'taxa' in data_dict:
             n.taxa = data_dict['taxa']
+        if 'description' in data_dict:
+            n.description = data_dict['description']
+        if 'information_content' in data_dict:
+            n.information_content = data_dict['information_content']
         if return_synonyms:
             if 'synonyms' in data_dict:
                 n.synonyms = data_dict['synonyms']
