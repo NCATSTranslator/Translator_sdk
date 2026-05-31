@@ -38,7 +38,8 @@ def get_normalized_nodes_raw(query: str | list[str],
         drug_chemical_conflate: bool = False,
         description: bool = False,
         individual_types: bool = False,
-        include_taxa: bool = True) -> dict:
+        include_taxa: bool = True,
+        url: str | None = None) -> dict:
     """
     Calls the NodeNorm ``get_normalized_nodes`` endpoint and returns its raw JSON.
 
@@ -66,13 +67,17 @@ def get_normalized_nodes_raw(query: str | list[str],
         Default: False.
     include_taxa : bool
         Ask NodeNorm to include taxa for the normalized nodes. Default: True.
+    url : str or None
+        Base URL of the NodeNorm service. Defaults to the module-level :data:`URL`
+        constant (``https://nodenorm.ci.transltr.io/``).
 
     Returns
     -------
     A dict mapping each queried CURIE to its raw NodeNorm result object, or to
     ``None`` when NodeNorm has no record of that CURIE.
     """
-    path = urllib.parse.urljoin(URL, 'get_normalized_nodes')
+    base = url if url is not None else URL
+    path = urllib.parse.urljoin(base if base.endswith('/') else base + '/', 'get_normalized_nodes')
     options = {
         'conflate': conflate,
         'drug_chemical_conflate': drug_chemical_conflate,

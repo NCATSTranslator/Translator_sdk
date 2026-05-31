@@ -30,6 +30,22 @@ def all_text(result):
     return text
 
 
+def stdout_only(result):
+    """Return only the stdout lines, stripping lines that appear in stderr.
+
+    Click 8.4+ always mixes stderr into result.output. This removes the
+    interleaved stderr lines so callers can parse CSV/JSON from stdout cleanly.
+    """
+    try:
+        stderr_lines = set(result.stderr.splitlines())
+    except (ValueError, AttributeError):
+        return result.output
+    return '\n'.join(
+        line for line in result.output.splitlines()
+        if line not in stderr_lines
+    ) + ('\n' if result.output.endswith('\n') else '')
+
+
 def read_csv(text, delimiter=','):
     """Parse CLI CSV/TSV output into (rows, fieldnames)."""
     reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
@@ -41,7 +57,7 @@ def test_normalize_csv_adds_prefixed_columns():
     result = run('normalize', str(DATA / 'sample.csv'),
                  '--column', 'curie', '--include', 'label,type')
     assert result.exit_code == 0, all_text(result)
-    rows, fieldnames = read_csv(result.output)
+    rows, fieldnames = read_csv(stdout_only(result))
 
     # Original columns are preserved, in order, before the added ones.
     assert fieldnames == ['gene_symbol', 'curie', 'source',
@@ -65,7 +81,7 @@ def test_normalize_json_keeps_lists_and_passes_through():
     result = run('normalize', str(DATA / 'sample.json'),
                  '--column', 'curie', '--include', 'types')
     assert result.exit_code == 0, all_text(result)
-    rows = json.loads(result.output)
+    rows = json.loads(stdout_only(result))
 
     assert rows[0]['gene_symbol'] == 'water'
     assert rows[0]['curie_normalized'] == 'CHEBI:15377'
@@ -94,7 +110,7 @@ def test_reads_from_stdin_with_format():
     result = run('normalize', '-', '--format', 'csv', '--column', 'curie',
                  input='curie\nMESH:D014867\n')
     assert result.exit_code == 0, all_text(result)
-    rows, _ = read_csv(result.output)
+    rows, _ = read_csv(stdout_only(result))
     assert rows[0]['curie_normalized'] == 'CHEBI:15377'
 
 
@@ -103,7 +119,7 @@ def test_include_aliases_and_default_columns():
     result = run('normalize', str(DATA / 'sample.csv'),
                  '--column', 'curie', '--include', 'name')
     assert result.exit_code == 0, all_text(result)
-    _, fieldnames = read_csv(result.output)
+    _, fieldnames = read_csv(stdout_only(result))
     assert fieldnames == ['gene_symbol', 'curie', 'source',
                           'curie_normalized', 'curie_errors', 'curie_label']
 
@@ -114,7 +130,7 @@ def test_multiple_columns_each_get_their_own_outputs():
                  '--column', 'a', '--column', 'b',
                  input='a,b\nMESH:D014867,NCBIGene:1756\n')
     assert result.exit_code == 0, all_text(result)
-    rows, fieldnames = read_csv(result.output)
+    rows, fieldnames = read_csv(stdout_only(result))
     assert fieldnames == ['a', 'b', 'a_normalized', 'a_errors',
                           'b_normalized', 'b_errors']
     assert rows[0]['a_normalized'] == 'CHEBI:15377'
@@ -131,8 +147,8 @@ def test_conflation_changes_the_result():
     assert default.exit_code == 0, all_text(default)
     assert no_conflation.exit_code == 0, all_text(no_conflation)
 
-    default_curie = read_csv(default.output)[0][0]['curie_normalized']
-    no_conflation_curie = read_csv(no_conflation.output)[0][0]['curie_normalized']
+    default_curie = read_csv(stdout_only(default))[0][0]['curie_normalized']
+    no_conflation_curie = read_csv(stdout_only(no_conflation))[0][0]['curie_normalized']
     assert default_curie == 'NCBIGene:1756'          # gene/protein conflation on
     assert no_conflation_curie == 'UniProtKB:P11532'  # conflation off
 
@@ -142,7 +158,7 @@ def test_empty_cell_is_left_blank():
     result = run('normalize', '-', '--format', 'csv', '--column', 'curie',
                  input='curie,note\n,a row with no curie\n')
     assert result.exit_code == 0, all_text(result)
-    rows, _ = read_csv(result.output)
+    rows, _ = read_csv(stdout_only(result))
     assert rows[0]['note'] == 'a row with no curie'
     assert rows[0]['curie_normalized'] == ''
     assert rows[0]['curie_errors'] == ''

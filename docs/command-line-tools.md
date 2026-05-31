@@ -172,6 +172,29 @@ translator normalize genes.csv --column curie --conflation none
 Whatever you list is exactly what gets turned on — so `--conflation drug-chemical`
 turns gene/protein conflation *off* and drug/chemical conflation *on*.
 
+### Choosing a NodeNorm instance: `--url`
+
+By default, the tool uses the NodeNorm service at `https://nodenorm.ci.transltr.io/`.
+If you need to use a different deployment — for example, the RENCI development
+instance — pass its base URL with `--url`:
+
+```
+translator normalize genes.csv --column curie \
+    --url https://nodenormalization-sri.renci.org/
+```
+
+### Summary report
+
+After writing the output, the tool prints a summary to the terminal showing how
+many unique CURIEs were successfully annotated:
+
+```
+Normalization complete: 56,979 / 56,979 unique CURIEs annotated (100.0%).
+```
+
+This summary is printed to standard error so it appears in the terminal even
+when you redirect the output to a file.
+
 ## Using it in a pipeline
 
 The tool can read from another program instead of a file. Use `-` in place of
@@ -210,8 +233,8 @@ A blank cell in your input column is left blank in the output, with no error.
 
 ## Seeing every option
 
-This guide covers the common cases. For the complete, always-up-to-date list of
-every command and option, run:
+This guide covers the common cases. For the complete list of every command and
+option, see the **[command reference](cli-reference.md)**, or run:
 
 ```
 translator --help
