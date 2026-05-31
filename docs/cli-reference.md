@@ -59,6 +59,10 @@ Options:
                            equivalent identifier (visible via --include json).
   --list-separator TEXT    String used to join list-valued cells in CSV/TSV
                            output.  [default: |]
+  --url URL                Base URL of the NodeNorm service to use. Defaults to
+                           https://nodenorm.ci.transltr.io/. Example:
+                           https://nodenormalization-sri.renci.org/ for the
+                           RENCI Dev instance.
   --help                   Show this message and exit.
 
   Fields available for --include / -i:

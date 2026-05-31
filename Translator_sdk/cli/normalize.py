@@ -123,7 +123,8 @@ def _resolve_conflation(values: list[str]) -> tuple[bool, bool]:
 
 
 def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_conflate: bool,
-                      description: bool, individual_types: bool) -> dict[str, CurieResult]:
+                      description: bool, individual_types: bool,
+                      url: str | None = None) -> dict[str, CurieResult]:
     """Normalize a list of unique CURIEs, returning a dict from CURIE to result.
 
     A CURIE NodeNorm has never heard of, and a CURIE in a batch whose request
@@ -138,6 +139,7 @@ def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_confla
                 batch, mode='post',
                 conflate=conflate, drug_chemical_conflate=drug_chemical_conflate,
                 description=description, individual_types=individual_types,
+                url=url,
             )
         except requests.RequestException as exc:
             for curie in batch:
@@ -193,8 +195,14 @@ def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_confla
     '--list-separator', default='|', show_default=True,
     help='String used to join list-valued cells in CSV/TSV output.',
 )
+@click.option(
+    '--url', 'nodenorm_url', default=None, metavar='URL',
+    help='Base URL of the NodeNorm service to use. '
+         'Defaults to https://nodenorm.ci.transltr.io/. '
+         'Example: https://nodenormalization-sri.renci.org/ for the RENCI Dev instance.',
+)
 def normalize(input_file, columns, includes, output, fmt_override, conflation,
-              individual_types, list_separator):
+              individual_types, list_separator, nodenorm_url):
     """Normalize CURIEs in a CSV, TSV or JSON file using NodeNorm.
 
     INPUT is the file to read, or '-' to read from standard input. The output is
@@ -242,6 +250,7 @@ def normalize(input_file, columns, includes, output, fmt_override, conflation,
         curies,
         conflate=conflate, drug_chemical_conflate=drug_chemical_conflate,
         description=want_description, individual_types=individual_types,
+        url=nodenorm_url,
     )
 
     # Add a <column>_<field> column for every selected column and chosen field.
@@ -262,3 +271,13 @@ def normalize(input_file, columns, includes, output, fmt_override, conflation,
         name for name in new_fieldnames if name not in fieldnames
     ]
     write_table(rows, output_fieldnames, output, fmt)
+
+    # Print a summary to stderr so it is visible even when output goes to a file.
+    total = len(curies)
+    annotated = sum(1 for r in results.values() if r.node is not None)
+    pct = (annotated / total * 100) if total else 0.0
+    click.echo(
+        f'Normalization complete: {annotated:,} / {total:,} unique CURIEs annotated '
+        f'({pct:.1f}%).',
+        err=True,
+    )
