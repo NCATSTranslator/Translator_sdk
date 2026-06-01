@@ -1,4 +1,4 @@
-.PHONY: test spell spell-fix lint lint-fix lint-notebooks format check install
+.PHONY: test spell spell-fix lint lint-fix lint-notebooks format check install docs
 
 # Install development dependencies
 install:
@@ -32,6 +32,10 @@ lint-notebooks:
 format:
 	uv run ruff format .
 
+# Regenerate the CLI reference documentation from the translator CLI
+docs:
+	uv run python -m Translator_sdk.cli.reference > docs/cli-reference.md
+
 # Run all checks (lint, spell, test)
 check: lint spell test
 
@@ -47,4 +51,5 @@ help:
 	@echo "  lint-notebooks - Run code linting on notebooks (informational)"
 	@echo "  format   - Format code"
 	@echo "  check    - Run all checks (lint, spell, test)"
+	@echo "  docs     - Regenerate docs/cli-reference.md from the CLI"
 	@echo "  help     - Show this help message"

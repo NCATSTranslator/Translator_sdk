@@ -7,6 +7,7 @@ into a result. Everything format- or column-related lives in the shared
 in :mod:`Translator_sdk.node_normalizer`.
 """
 from dataclasses import dataclass
+from pathlib import Path
 
 import click
 import requests
@@ -53,6 +54,11 @@ FIELDS = FieldRegistry([
         aliases=('error',), default=True,
     ),
     IncludeField(
+        'biolink_type', 'the most specific Biolink type of the node',
+        _node_attr(lambda n: n.types[0] if n.types else None),
+        aliases=('biolink-type', 'type', 'category'), default=True,
+    ),
+    IncludeField(
         'label', 'the preferred name of the normalized node',
         _node_attr(lambda n: n.label),
         aliases=('name', 'preferred-name'),
@@ -63,12 +69,7 @@ FIELDS = FieldRegistry([
         aliases=('desc', 'descriptions'),
     ),
     IncludeField(
-        'type', 'the most specific biolink type of the node',
-        _node_attr(lambda n: n.types[0] if n.types else None),
-        aliases=('category',),
-    ),
-    IncludeField(
-        'types', 'every biolink type of the node',
+        'types', 'every Biolink type of the node',
         _node_attr(lambda n: n.types),
         aliases=('categories', 'all-types'),
     ),
@@ -123,7 +124,8 @@ def _resolve_conflation(values: list[str]) -> tuple[bool, bool]:
 
 
 def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_conflate: bool,
-                      description: bool, individual_types: bool) -> dict[str, CurieResult]:
+                      description: bool, individual_types: bool,
+                      url: str | None = None) -> dict[str, CurieResult]:
     """Normalize a list of unique CURIEs, returning a dict from CURIE to result.
 
     A CURIE NodeNorm has never heard of, and a CURIE in a batch whose request
@@ -138,6 +140,7 @@ def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_confla
                 batch, mode='post',
                 conflate=conflate, drug_chemical_conflate=drug_chemical_conflate,
                 description=description, individual_types=individual_types,
+                url=url,
             )
         except requests.RequestException as exc:
             for curie in batch:
@@ -150,6 +153,74 @@ def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_confla
             else:
                 results[curie] = CurieResult(node=_node_from_response(raw_node), raw=raw_node)
     return results
+
+
+def _split_by_type(rows: list[dict], fieldnames: list[str], column: str,
+                   split_dir: str, fmt: str) -> None:
+    """Write one output file per Biolink type into ``split_dir``.
+
+    Rows whose Biolink type is empty (CURIE not normalized) go into
+    ``Unknown.<ext>``. The ``biolink:`` prefix is stripped from filenames so
+    that e.g. ``biolink:SmallMolecule`` becomes ``SmallMolecule.csv``.
+    """
+    type_col = f'{column}_biolink_type'
+    by_type: dict[str, list[dict]] = {}
+    for row in rows:
+        raw_type = row.get(type_col) or ''
+        if raw_type.startswith('biolink:'):
+            file_key = raw_type[len('biolink:'):]
+        elif raw_type:
+            file_key = raw_type
+        else:
+            file_key = 'Unknown'
+        by_type.setdefault(file_key, []).append(row)
+
+    out_dir = Path(split_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ext = {'csv': '.csv', 'tsv': '.tsv', 'json': '.json'}.get(fmt, '.csv')
+
+    for type_name, type_rows in sorted(by_type.items()):
+        safe = type_name.replace(':', '_').replace('/', '_').replace('\\', '_')
+        write_table(type_rows, fieldnames, str(out_dir / f'{safe}{ext}'), fmt)
+
+    click.echo(
+        f'Split into {len(by_type):,} type file(s) in {str(out_dir)!r}.',
+        err=True,
+    )
+
+
+def _print_summary(results: dict[str, CurieResult], total: int) -> None:
+    """Print the normalization summary and Biolink type breakdown to stderr."""
+    annotated = sum(1 for r in results.values() if r.node is not None)
+    unannotated = total - annotated
+    pct = (annotated / total * 100) if total else 0.0
+
+    click.echo(
+        f'Normalization complete: {annotated:,} / {total:,} unique CURIEs annotated '
+        f'({pct:.1f}%).',
+        err=True,
+    )
+
+    type_counts: dict[str, int] = {}
+    for result in results.values():
+        if result.node is not None:
+            type_val = result.node.types[0] if result.node.types else 'biolink:NamedThing'
+            type_counts[type_val] = type_counts.get(type_val, 0) + 1
+
+    if not type_counts and not unannotated:
+        return
+
+    click.echo('Biolink type breakdown (unique CURIEs):', err=True)
+    sorted_types = sorted(type_counts.items(), key=lambda kv: -kv[1])
+    col_w = max((len(t) for t, _ in sorted_types), default=0)
+    if unannotated:
+        col_w = max(col_w, len('(not normalized)'))
+    for type_name, count in sorted_types:
+        pct_t = count / total * 100 if total else 0.0
+        click.echo(f'  {type_name:<{col_w}}  {count:>8,}  ({pct_t:.1f}%)', err=True)
+    if unannotated:
+        pct_u = unannotated / total * 100
+        click.echo(f'  {"(not normalized)":<{col_w}}  {unannotated:>8,}  ({pct_u:.1f}%)', err=True)
 
 
 @click.command(
@@ -168,7 +239,7 @@ def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_confla
     '-i', '--include', 'includes', multiple=True,
     help="Extra field(s) to add for each normalized CURIE (see the list below). "
          "Repeatable; comma-separated values also work. "
-         "'normalized' and 'errors' are always added.",
+         "'normalized', 'errors', and 'biolink_type' are always added.",
 )
 @click.option(
     '-o', '--output', default='-', type=click.Path(dir_okay=False, allow_dash=True),
@@ -193,8 +264,21 @@ def _normalize_curies(curies: list[str], *, conflate: bool, drug_chemical_confla
     '--list-separator', default='|', show_default=True,
     help='String used to join list-valued cells in CSV/TSV output.',
 )
+@click.option(
+    '--url', 'nodenorm_url', default=None, metavar='URL',
+    help='Base URL of the NodeNorm service to use. '
+         'Defaults to https://nodenorm.ci.transltr.io/. '
+         'Example: https://nodenormalization-sri.renci.org/ for the RENCI Dev instance.',
+)
+@click.option(
+    '--split-by-type', 'split_type_dir', default=None, metavar='DIRECTORY',
+    type=click.Path(file_okay=False),
+    help='Split the output into one file per Biolink type in this directory '
+         '(e.g. DIRECTORY/SmallMolecule.csv). The directory is created if it '
+         'does not exist. Based on the Biolink type of the first --column.',
+)
 def normalize(input_file, columns, includes, output, fmt_override, conflation,
-              individual_types, list_separator):
+              individual_types, list_separator, nodenorm_url, split_type_dir):
     """Normalize CURIEs in a CSV, TSV or JSON file using NodeNorm.
 
     INPUT is the file to read, or '-' to read from standard input. The output is
@@ -204,9 +288,10 @@ def normalize(input_file, columns, includes, output, fmt_override, conflation,
 
     \b
     Examples:
-      translator normalize genes.csv --column gene_id --include label,type
+      translator normalize genes.csv --column gene_id --include label
       translator normalize ids.json -c curie -i label -o normalized.json
       cat ids.tsv | translator normalize - --format tsv -c id
+      translator normalize ids.csv -c id --split-by-type outdir/
     """
     # Read the input table.
     try:
@@ -242,6 +327,7 @@ def normalize(input_file, columns, includes, output, fmt_override, conflation,
         curies,
         conflate=conflate, drug_chemical_conflate=drug_chemical_conflate,
         description=want_description, individual_types=individual_types,
+        url=nodenorm_url,
     )
 
     # Add a <column>_<field> column for every selected column and chosen field.
@@ -262,3 +348,8 @@ def normalize(input_file, columns, includes, output, fmt_override, conflation,
         name for name in new_fieldnames if name not in fieldnames
     ]
     write_table(rows, output_fieldnames, output, fmt)
+
+    if split_type_dir:
+        _split_by_type(rows, output_fieldnames, columns[0], split_type_dir, fmt)
+
+    _print_summary(results, len(curies))

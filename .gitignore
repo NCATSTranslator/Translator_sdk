@@ -1,3 +1,6 @@
+# Ignore /data directory so we can store artifacts/outputs/logs there.
+/data
+
 *.pyc
 *.db
 .ipynb_checkpoints
