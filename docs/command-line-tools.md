@@ -77,17 +77,17 @@ translator normalize genes.csv --column curie --include label,type
 You will see:
 
 ```
-gene_symbol,curie,curie_normalized,curie_errors,curie_label,curie_type
-water,MESH:D014867,CHEBI:15377,,Water,biolink:SmallMolecule
-dystrophin,NCBIGene:1756,NCBIGene:1756,,DMD,biolink:Gene
+gene_symbol,curie,curie_normalized,curie_errors,curie_biolink_type,curie_label
+water,MESH:D014867,CHEBI:15377,,biolink:SmallMolecule,Water
+dystrophin,NCBIGene:1756,NCBIGene:1756,,biolink:Gene,DMD
 ```
 
 Your two original columns are untouched, and four new columns were added:
 
 - `curie_normalized` — the preferred identifier NodeNorm chose,
 - `curie_errors` — empty here, because both lookups succeeded,
-- `curie_label` — the preferred name,
-- `curie_type` — the kind of thing it is.
+- `curie_biolink_type` — the Biolink type (always added by default),
+- `curie_label` — the preferred name.
 
 By default the result is printed to the screen. To save it to a file instead,
 use `--output` (described below).
@@ -115,8 +115,9 @@ translator normalize genes.csv --column curie --include label,type,description
 translator normalize genes.csv --column curie -i label -i type -i description
 ```
 
-Two columns are **always** added — `normalized` (the preferred identifier) and
-`errors` — so you never lose track of what happened.
+Three columns are **always** added — `normalized` (the preferred identifier),
+`errors`, and `biolink_type` — so you never lose track of what happened or
+what kind of thing was found.
 
 Field names are forgiving: you can write `name` or `label`, `type` or
 `category`, and capitalization or `-`/`_` do not matter. The most useful fields
@@ -125,11 +126,15 @@ are:
 | Ask for | You get |
 |---|---|
 | `label` (or `name`) | the preferred name, e.g. `Water` |
-| `type` (or `category`) | the kind of thing, e.g. `biolink:Gene` |
 | `description` | a sentence describing it |
+| `types` (or `all-types`) | every Biolink type, from most to least specific |
 | `taxa` | the organism(s) it belongs to |
 | `equivalent-identifiers` (or `synonyms`) | every other identifier for the same thing |
 | `json` | the complete raw NodeNorm response |
+
+`biolink_type` (the single most specific type, e.g. `biolink:Gene`) is added
+automatically and does not need to be listed here. You can also write `type` or
+`category` as an alias.
 
 For the full list, run `translator normalize --help`.
 
